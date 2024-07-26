@@ -1,0 +1,20 @@
+.box {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    &-inner {
+        width: 50px;
+        height: 50px;
+        background-image: url('../images/2.gif');
+        background-size: cover;
+        background-position: center;
+        transition: all 0.5s ease-in;
+    }
+    &-inner:hover {
+        width: 80px;
+        height: 80px;
+    }
+}
