@@ -9,3 +9,9 @@ import "./css/iconfont.css";
 
 console.log(count(10, 20));
 console.log(sum(10, 20, 30, 40));
+// 判断是否支持HMR功能
+if (module.hot) {
+  console.log("^^^");
+  module.hot.accept("./js/count.js");
+  module.hot.accept("./js/sum.js");
+}

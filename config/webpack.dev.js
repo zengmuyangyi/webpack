@@ -2,6 +2,7 @@ const { type } = require("os");
 const path = require("path"); // 引入path模块
 const ESLintPlugin = require("eslint-webpack-plugin"); // 引入ESLint插件
 const HtmlWebpackPlugin = require("html-webpack-plugin"); // 引入html-webpack-plugin插件
+const { options } = require("less");
 
 module.exports = {
   // 入口
@@ -19,54 +20,59 @@ module.exports = {
     rules: [
       // loader的配置
       {
-        test: /\.css$/, // 只监测.css结尾的文件
-        use: [
-          // 执行顺序，从后往前执行
-          "style-loader", // 将js中css通过创建style标签添加到html文件中生成
-          "css-loader", // 将css文件转换成commonjs模块加载到页面中
-        ],
-      },
-      {
-        test: /\.less$/,
-        use: ["style-loader", "css-loader", , "less-loader"],
-      },
-      {
-        test: /\.s[ac]ss$/,
-        use: ["style-loader", "css-loader", , "sass-loader"],
-      },
-      {
-        test: /\.styl$/,
-        use: ["style-loader", "css-loader", , "stylus-loader"],
-      },
-      {
-        test: /\.(png|jpe?g|gif|webp|svg)$/,
-        type: "asset", // 会转base64格式
-        parser: {
-          dataUrlCondition: {
-            // 小于10kb的图片自动转成base64格式，否则使用file-loader
-            // 优点：减少http请求   缺点：图片体积会更大
-            maxSize: 10 * 1024, // 10kb
+        // 每个文件只能被其中一个loader配置处理
+        oneOf: [
+          {
+            test: /\.css$/, // 只监测.css结尾的文件
+            use: [
+              // 执行顺序，从后往前执行
+              "style-loader", // 将js中css通过创建style标签添加到html文件中生成
+              "css-loader", // 将css文件转换成commonjs模块加载到页面中
+            ],
           },
-        },
-      },
-      {
-        test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
-        type: "asset/resource", // 不会转base64格式
-        generator: {
-          // 输出名称
-          filename: "assets/fonts/[hash:10][ext][query]",
-        },
-      },
-      {
-        test: /\.js$/,
-        exclude: /node_modules/, // 排除node_modules目录
-        use: {
-          loader: "babel-loader", // 指定使用的loader
-          // 指定使用的loader
-          // options: {
-          //   persets: ["@babel/preset-env"], // 指定使用的插件
-          // },
-        },
+          {
+            test: /\.less$/,
+            use: ["style-loader", "css-loader", "less-loader"],
+          },
+          {
+            test: /\.s[ac]ss$/,
+            use: ["style-loader", "css-loader", "sass-loader"],
+          },
+          {
+            test: /\.styl$/,
+            use: ["style-loader", "css-loader", "stylus-loader"],
+          },
+          {
+            test: /\.(png|jpe?g|gif|webp|svg)$/,
+            type: "asset", // 会转base64格式
+            parser: {
+              dataUrlCondition: {
+                // 小于10kb的图片自动转成base64格式，否则使用file-loader
+                // 优点：减少http请求   缺点：图片体积会更大
+                maxSize: 10 * 1024, // 10kb
+              },
+            },
+          },
+          {
+            test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
+            type: "asset/resource", // 不会转base64格式
+            generator: {
+              // 输出名称
+              filename: "assets/fonts/[hash:10][ext][query]",
+            },
+          },
+          {
+            test: /\.js$/,
+            exclude: /node_modules/, // 排除node_modules目录
+            use: {
+              loader: "babel-loader", // 指定使用的loader
+              // 指定使用的loader
+              // options: {
+              //   persets: ["@babel/preset-env"], // 指定使用的插件
+              // },
+            },
+          },
+        ],
       },
     ],
   },
@@ -87,7 +93,9 @@ module.exports = {
     host: "127.0.0.1", // 指定服务器ip
     port: "3000", // 指定端口号
     open: true, // 自动打开浏览器
+    hot: true, // 热更新，开启hmr
   },
   // 模式
   mode: "development",
+  devtool: "cheap-module-source-map",
 };

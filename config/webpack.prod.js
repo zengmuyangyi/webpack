@@ -3,6 +3,32 @@ const path = require("path"); // 引入path模块
 const ESLintPlugin = require("eslint-webpack-plugin"); // 引入ESLint插件
 const HtmlWebpackPlugin = require("html-webpack-plugin"); // 引入html-webpack-plugin插件
 const MiniCssExtractPlugin = require("mini-css-extract-plugin"); // 引入mini-css-extract-plugin插件
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin"); // 引入css压缩插件
+
+/**
+ * 获取样式加载器数组
+ *
+ * @param pre 自定义加载器
+ * @returns 样式加载器数组
+ */
+function getStyleLoader(pre) {
+  return [
+    // 执行顺序，从后往前执行
+    MiniCssExtractPlugin.loader, // 将js中css通过创建style标签添加到html文件中生成
+    "css-loader", // 将css文件转换成commonjs模块加载到页面中
+    {
+      loader: "postcss-loader", // 自动添加浏览器前缀
+      options: {
+        postcssOptions: {
+          plugins: [
+            "postcss-preset-env", // 能解决绝大多数样式兼容性问题
+          ],
+        },
+      },
+    },
+    pre,
+  ].filter(Boolean);
+}
 
 module.exports = {
   // 入口
@@ -23,57 +49,60 @@ module.exports = {
     rules: [
       // loader的配置
       {
-        test: /\.css$/, // 只监测.css结尾的文件
-        use: [
-          // 执行顺序，从后往前执行
-          MiniCssExtractPlugin.loader, // 将js中css通过创建style标签添加到html文件中生成
-          "css-loader", // 将css文件转换成commonjs模块加载到页面中
-        ],
-      },
-      {
-        test: /\.less$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader", , "less-loader"],
-      },
-      {
-        test: /\.s[ac]ss$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader", , "sass-loader"],
-      },
-      {
-        test: /\.styl$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader", , "stylus-loader"],
-      },
-      {
-        test: /\.(png|jpe?g|gif|webp|svg)$/,
-        type: "asset", // 会转base64格式
-        parser: {
-          dataUrlCondition: {
-            // 小于10kb的图片自动转成base64格式，否则使用file-loader
-            // 优点：减少http请求   缺点：图片体积会更大
-            maxSize: 10 * 1024, // 10kb
+        oneOf: [
+          {
+            test: /\.css$/, // 只监测.css结尾的文件
+            use: getStyleLoader(),
           },
-        },
-      },
-      {
-        test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
-        type: "asset/resource", // 不会转base64格式
-        generator: {
-          // 输出名称
-          filename: "assets/fonts/[hash:10][ext][query]",
-        },
-      },
-      {
-        test: /\.js$/,
-        exclude: /node_modules/, // 排除node_modules目录
-        use: {
-          loader: "babel-loader", // 指定使用的loader
-          // 指定使用的loader
-          // options: {
-          //   persets: ["@babel/preset-env"], // 指定使用的插件
-          // },
-        },
+          {
+            test: /\.less$/,
+            use: getStyleLoader("less-loader"),
+          },
+          {
+            test: /\.s[ac]ss$/,
+            use: getStyleLoader("sass-loader"),
+          },
+          {
+            test: /\.styl$/,
+            use: getStyleLoader("stylus-loader"),
+          },
+          {
+            test: /\.(png|jpe?g|gif|webp|svg)$/,
+            type: "asset", // 会转base64格式
+            parser: {
+              dataUrlCondition: {
+                // 小于10kb的图片自动转成base64格式，否则使用file-loader
+                // 优点：减少http请求   缺点：图片体积会更大
+                maxSize: 10 * 1024, // 10kb
+              },
+            },
+          },
+          {
+            test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
+            type: "asset/resource", // 不会转base64格式
+            generator: {
+              // 输出名称
+              filename: "assets/fonts/[hash:10][ext][query]",
+            },
+          },
+          {
+            test: /\.js$/,
+            exclude: /node_modules/, // 排除node_modules目录
+            use: {
+              loader: "babel-loader", // 指定使用的loader
+              // 指定使用的loader
+              // options: {
+              //   persets: ["@babel/preset-env"], // 指定使用的插件
+              // },
+            },
+          },
+        ],
       },
     ],
   },
+  // optimization: {
+  //   minimizer: [new CssMinimizerPlugin()],
+  // },
   // 插件
   plugins: [
     // 插件的配置
@@ -88,7 +117,9 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: "assets/css/main.css", // 指定打包输出的文件
     }),
+    new CssMinimizerPlugin(),
   ],
   // 模式
   mode: "production", // 生产环境
+  devtool: "source-map", // 生成source-map文件，方便调试
 };
