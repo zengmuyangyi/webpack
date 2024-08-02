@@ -1,10 +1,13 @@
-const { type } = require("os");
 const path = require("path"); // 引入path模块
 const ESLintPlugin = require("eslint-webpack-plugin"); // 引入ESLint插件
 const HtmlWebpackPlugin = require("html-webpack-plugin"); // 引入html-webpack-plugin插件
 const MiniCssExtractPlugin = require("mini-css-extract-plugin"); // 引入mini-css-extract-plugin插件
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin"); // 引入css压缩插件
+const os = require("os"); // 引入os模块
+const TerserWebpackPlugin = require("terser-webpack-plugin"); // 引入terser-webpack-plugin插件
+const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 
+const threads = os.cpus().length; // 获取cpu核心数
 /**
  * 获取样式加载器数组
  *
@@ -49,66 +52,73 @@ module.exports = {
     rules: [
       // loader的配置
       {
-        oneOf: [
-          {
-            test: /\.css$/, // 只监测.css结尾的文件
-            use: getStyleLoader(),
+        test: /\.css$/, // 只监测.css结尾的文件
+        use: getStyleLoader(),
+      },
+      {
+        test: /\.less$/,
+        use: getStyleLoader("less-loader"),
+      },
+      {
+        test: /\.s[ac]ss$/,
+        use: getStyleLoader("sass-loader"),
+      },
+      {
+        test: /\.styl$/,
+        use: getStyleLoader("stylus-loader"),
+      },
+      {
+        test: /\.(png|jpe?g|gif|webp|svg)$/,
+        type: "asset", // 会转base64格式
+        parser: {
+          dataUrlCondition: {
+            // 小于10kb的图片自动转成base64格式，否则使用file-loader
+            // 优点：减少http请求   缺点：图片体积会更大
+            maxSize: 10 * 1024, // 10kb
           },
+        },
+      },
+      {
+        test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
+        type: "asset/resource", // 不会转base64格式
+        generator: {
+          // 输出名称
+          filename: "assets/fonts/[hash:10][ext][query]",
+        },
+      },
+      {
+        test: /\.js$/,
+        include: path.resolve(__dirname, "../src"), // 只处理src下的文件目录
+        use: [
           {
-            test: /\.less$/,
-            use: getStyleLoader("less-loader"),
-          },
-          {
-            test: /\.s[ac]ss$/,
-            use: getStyleLoader("sass-loader"),
-          },
-          {
-            test: /\.styl$/,
-            use: getStyleLoader("stylus-loader"),
-          },
-          {
-            test: /\.(png|jpe?g|gif|webp|svg)$/,
-            type: "asset", // 会转base64格式
-            parser: {
-              dataUrlCondition: {
-                // 小于10kb的图片自动转成base64格式，否则使用file-loader
-                // 优点：减少http请求   缺点：图片体积会更大
-                maxSize: 10 * 1024, // 10kb
-              },
+            loader: "thread-loader", // 开启多线程打包,
+            options: {
+              workers: threads, // 开启几个线程
             },
           },
           {
-            test: /\.(ttf|woff2?|mp3|mp4|avi)$/,
-            type: "asset/resource", // 不会转base64格式
-            generator: {
-              // 输出名称
-              filename: "assets/fonts/[hash:10][ext][query]",
-            },
-          },
-          {
-            test: /\.js$/,
-            exclude: /node_modules/, // 排除node_modules目录
-            use: {
-              loader: "babel-loader", // 指定使用的loader
-              // 指定使用的loader
-              // options: {
-              //   persets: ["@babel/preset-env"], // 指定使用的插件
-              // },
+            loader: "babel-loader", // 指定使用的loader
+            // 指定使用的loader
+            options: {
+              cacheDirectory: true, // 开启缓存
+              cacheCompression: false, // 关闭缓存压缩
+              plugins: ["@babel/plugin-transform-runtime"], // 减少代码体积
             },
           },
         ],
       },
     ],
   },
-  // optimization: {
-  //   minimizer: [new CssMinimizerPlugin()],
-  // },
   // 插件
   plugins: [
     // 插件的配置
     // esLint插件
     new ESLintPlugin({
       context: path.resolve(__dirname, "../src"), // 指定检查的目录
+      exclude: "node_modules", // 排除node_modules目录
+      cache: true, // 开启缓存，减少检测时间
+      cacheLocation: path.resolve(__dirname, "../node_modules/.cache/eslint"), // 指定缓存文件
+      threads: threads, // 开启几个线程来检测
     }),
     new HtmlWebpackPlugin({
       // 新的html文件特定：1.结构和原来一直 2.自动引入打包输出的所有资源文件
@@ -117,8 +127,37 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: "assets/css/main.css", // 指定打包输出的文件
     }),
-    new CssMinimizerPlugin(),
+    // new CssMinimizerPlugin(),
+    // new TerserWebpackPlugin({
+    //   parallel: threads, // 开启几个线程来压缩
+    // }),
   ],
+  // webpack5习惯将压缩配置单独抽离出来至此
+  optimization: {
+    // 压缩配置
+    minimizer: [
+      // 压缩css
+      new CssMinimizerPlugin(),
+      // 压缩js
+      new TerserWebpackPlugin({
+        parallel: threads, // 开启几个线程来压缩
+      }),
+      // 压缩图片
+      new ImageMinimizerPlugin({
+        minimizer: {
+          implementation: ImageMinimizerPlugin.imageminGenerate,
+          options: {
+            plugins: [
+              "imagemin-gifsicle",
+              "imagemin-mozjpeg",
+              "imagemin-pngquant",
+              "imagemin-svgo",
+            ],
+          },
+        },
+      }),
+    ],
+  },
   // 模式
   mode: "production", // 生产环境
   devtool: "source-map", // 生成source-map文件，方便调试

@@ -1,9 +1,10 @@
-const { type } = require("os");
 const path = require("path"); // 引入path模块
 const ESLintPlugin = require("eslint-webpack-plugin"); // 引入ESLint插件
 const HtmlWebpackPlugin = require("html-webpack-plugin"); // 引入html-webpack-plugin插件
-const { options } = require("less");
+const os = require("os"); // 引入os模块
+const TerserWebpackPlugin = require("terser-webpack-plugin"); // 引入terser-webpack-plugin插件
 
+const threads = os.cpus().length; // 获取cpu核心数
 module.exports = {
   // 入口
   entry: "./src/main.js", // 相对路径
@@ -63,14 +64,25 @@ module.exports = {
           },
           {
             test: /\.js$/,
-            exclude: /node_modules/, // 排除node_modules目录
-            use: {
-              loader: "babel-loader", // 指定使用的loader
-              // 指定使用的loader
-              // options: {
-              //   persets: ["@babel/preset-env"], // 指定使用的插件
-              // },
-            },
+            // exclude: /node_modules/, // 排除node_modules目录
+            include: path.resolve(__dirname, "../src"), // 只处理src下的文件目录
+            use: [
+              {
+                loader: "thread-loader", // 开启多线程打包,
+                options: {
+                  workers: threads, // 开启几个线程
+                },
+              },
+              {
+                loader: "babel-loader", // 指定使用的loader
+                // 指定使用的loader
+                options: {
+                  cacheDirectory: true, // 开启缓存
+                  cacheCompression: false, // 关闭缓存压缩
+                  plugins: ["@babel/plugin-transform-runtime"], // 减少代码体积
+                },
+              },
+            ],
           },
         ],
       },
@@ -82,6 +94,10 @@ module.exports = {
     // esLint插件
     new ESLintPlugin({
       context: path.resolve(__dirname, "../src"), // 指定检查的目录
+      exclude: "node_modules", // 排除node_modules目录
+      cache: true, // 开启缓存，减少检测时间
+      cacheLocation: path.resolve(__dirname, "../node_modules/.cache/eslint"), // 指定缓存文件
+      threads: threads, // 开启几个线程来检测
     }),
     new HtmlWebpackPlugin({
       // 新的html文件特定：1.结构和原来一直 2.自动引入打包输出的所有资源文件
@@ -97,5 +113,5 @@ module.exports = {
   },
   // 模式
   mode: "development",
-  devtool: "cheap-module-source-map",
+  devtool: "cheap-module-source-map", // 生成sourcemap文件
 };
