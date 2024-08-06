@@ -5,7 +5,9 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin"); // 引入mini-c
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin"); // 引入css压缩插件
 const os = require("os"); // 引入os模块
 const TerserWebpackPlugin = require("terser-webpack-plugin"); // 引入terser-webpack-plugin插件
-const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+// const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+const PreloadWebpackPlugin = require("@vue/preload-webpack-plugin");
+const WorkboxPlugin = require("workbox-webpack-plugin"); // 引入workbox-webpack-plugin插件(PWA断线插件)
 
 const threads = os.cpus().length; // 获取cpu核心数
 /**
@@ -41,7 +43,10 @@ module.exports = {
     // 所有文件的输出路径
     path: path.resolve(__dirname, "../dist"), // 绝对路径
     // 入口文件打包输出文件名
-    filename: "assets/main.js",
+    // [contenthash:8]使用contenthash(根据文件内容生成 hash 值，只有文件内容变化了，hash 值才会变化)
+    filename: "assets/js/[name].[contenthash:8].js",
+    // 打包输出的其他文件命名
+    chunkFilename: "assets/js/[name].[contenthash:8].chunk.js",
     // 静态资源文件打包输出文件名
     // [hash:10] 打包文件hash值，长度为10
     assetModuleFilename: "assets/[hash:10][ext][query]",
@@ -76,6 +81,11 @@ module.exports = {
             // 优点：减少http请求   缺点：图片体积会更大
             maxSize: 10 * 1024, // 10kb
           },
+        },
+        generator: {
+          // 输出图片名称
+          // [hash:10] 打包文件hash值，长度为10
+          filename: "assets/images/[hash:10][ext][query]",
         },
       },
       {
@@ -125,12 +135,22 @@ module.exports = {
       template: path.resolve(__dirname, "../public/index.html"), // 指定模板文件
     }),
     new MiniCssExtractPlugin({
-      filename: "assets/css/main.css", // 指定打包输出的文件
+      filename: "assets/css/[name].[contenthash:8].css", // 指定打包输出的文件
+      chunkFilename: "assets/css/[name].[contenthash:8].chunk.css",
     }),
     // new CssMinimizerPlugin(),
     // new TerserWebpackPlugin({
     //   parallel: threads, // 开启几个线程来压缩
     // }),
+    new PreloadWebpackPlugin({
+      // rel: "preload", // 指定资源类型
+      // as: "script", // 指定引入类型
+      rel: "prefetch", //兼容性较差
+    }),
+    new WorkboxPlugin.GenerateSW({
+      clientsClaim: true, // 客户端开始控制页面
+      skipWaiting: true, // 强制等待
+    }),
   ],
   // webpack5习惯将压缩配置单独抽离出来至此
   optimization: {
@@ -157,6 +177,13 @@ module.exports = {
       //   },
       // }),
     ],
+    // 代码分割
+    splitChunks: {
+      chunks: "all", // 默认值，自动分割代码块
+    },
+    runtimeChunk: {
+      name: (entrypoint) => `runtime~${entrypoint.name}.js`, // 指定入口文件名称
+    },
   },
   // 模式
   mode: "production", // 生产环境
