@@ -51,5 +51,8 @@
     "last 2 version",
     "> 1%",
     "not dead"
-  ]
+  ],
+  "dependencies": {
+    "qiankun": "^2.10.16"
+  }
 }

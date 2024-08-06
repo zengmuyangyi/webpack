@@ -1120,3 +1120,102 @@ Error with 'src\images\3.gif': spawn C:\Users\86176\Desktop\webpack\webpack_code
 需要复制到 `node_modules\optipng-bin\vendor` 下面
 
 > [OptiPNG 官网地址](http://optipng.sourceforge.net/)
+
+# 优化代码运行性能
+
+## Code Split
+
+### 为什么
+
+打包代码时会将所有 js 文件打包到一个文件中，体积太大了。我们如果只要渲染首页，就应该只加载首页的 js 文件，其他文件不应该加载。
+
+所以我们需要将打包生成的文件进行代码分割，生成多个 js 文件，渲染哪个页面就只加载某个 js 文件，这样加载的资源就少，速度就更快。
+
+### 是什么
+
+代码分割（Code Split）主要做了两件事：
+
+1.  分割文件：将打包生成的文件进行分割，生成多个 js 文件。
+2.  按需加载：需要哪个文件就加载哪个文件。
+
+### 怎么用
+
+代码分割实现方式有不同的方式，为了更加方便体现它们之间的差异，我们会分别创建新的文件来演示
+
+##### 1. 多入口
+
+1. 文件目录
+
+```
+├── public
+├── src
+|   ├── app.js
+|   └── main.js
+├── package.json
+└── webpack.config.js
+```
+
+2. 下载包
+
+```
+npm i webpack webpack-cli html-webpack-plugin -D
+```
+
+3. 新建文件
+
+内容无关紧要，主要观察打包输出的结果
+
+- app.js
+
+```js
+console.log("hello app");
+```
+
+- main.js
+
+```js
+console.log("hello main");
+```
+
+4. 配置
+
+```js
+// webpack.config.js
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+
+module.exports = {
+  // 单入口
+  // entry: './src/main.js',
+  // 多入口
+  entry: {
+    main: "./src/main.js",
+    app: "./src/app.js",
+  },
+  output: {
+    path: path.resolve(__dirname, "./dist"),
+    // [name]是webpack命名规则，使用chunk的name作为输出的文件名。
+    // 什么是chunk？打包的资源就是chunk，输出出去叫bundle。
+    // chunk的name是啥呢？ 比如： entry中xxx: "./src/xxx.js", name就是xxx。注意是前面的xxx，和文件名无关。
+    // 为什么需要这样命名呢？如果还是之前写法main.js，那么打包生成两个js文件都会叫做main.js会发生覆盖。(实际上会直接报错的)
+    filename: "js/[name].js",
+    clear: true,
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+    }),
+  ],
+  mode: "production",
+};
+```
+
+5. 运行指令
+
+```
+npx webpack
+```
+
+此时在 dist 目录我们能看到输出了两个 js 文件。
+
+总结：配置了几个入口，至少输出几个 js 文件。

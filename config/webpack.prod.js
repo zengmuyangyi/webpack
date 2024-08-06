@@ -143,19 +143,19 @@ module.exports = {
         parallel: threads, // 开启几个线程来压缩
       }),
       // 压缩图片
-      new ImageMinimizerPlugin({
-        minimizer: {
-          implementation: ImageMinimizerPlugin.imageminGenerate,
-          options: {
-            plugins: [
-              "imagemin-gifsicle",
-              "imagemin-mozjpeg",
-              "imagemin-pngquant",
-              "imagemin-svgo",
-            ],
-          },
-        },
-      }),
+      // new ImageMinimizerPlugin({
+      //   minimizer: {
+      //     implementation: ImageMinimizerPlugin.imageminGenerate,
+      //     options: {
+      //       plugins: [
+      //         "imagemin-gifsicle",
+      //         "imagemin-mozjpeg",
+      //         "imagemin-pngquant",
+      //         "imagemin-svgo",
+      //       ],
+      //     },
+      //   },
+      // }),
     ],
   },
   // 模式
