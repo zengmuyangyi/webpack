@@ -123,9 +123,30 @@ module.exports = {
   ],
   mode: "production",
   devtool: "source-map",
+  performance: false, // 关闭性能分析，提示速度
   optimization: {
     splitChunks: {
       chunks: "all",
+      cacheGroups: {
+        // react相关一起打包
+        react: {
+          test: /[\\/]node_modules[\\/]react(.*)?[\\/]/,
+          name: "chunk-react",
+          priority: 40,
+        },
+        // antd单独打包
+        antd: {
+          test: /[\\/]node_modules[\\/]antd[\\/]/,
+          name: "chunk-antd",
+          priority: 30,
+        },
+        // 剩下的node_modules单独打包
+        libs: {
+          test: /[\\/]node_modules[\\/]/,
+          name: "chunk-libs",
+          priority: 20,
+        },
+      },
     },
     runtimeChunk: {
       name: (entrypoint) => `runtime~${entrypoint.name}.js`,
