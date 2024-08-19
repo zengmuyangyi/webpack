@@ -1,5 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const TestPlugin = require("./plugins/test-plugin");
+const BannerWebpackPlugin = require("./plugins/banner-webpack-plugin");
 
 module.exports = {
   entry: "./src/main.js",
@@ -54,6 +56,10 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public/index.html"),
+    }),
+    // new TestPlugin(),
+    new BannerWebpackPlugin({
+      author: "曾杨",
     }),
   ],
   mode: "development",
